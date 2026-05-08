@@ -261,12 +261,12 @@
       <label for="content">Content</label>
       <textarea
         id="content"
-        maxlength="8000"
+        maxlength="30000"
         placeholder="Write your premium note here. Markdown-style formatting is supported in the viewer…"
         spellcheck="true"
       ></textarea>
       <div class="field-meta">
-        <span id="char-count">0 / 8000</span>
+        <span id="char-count">0 / 30000</span>
       </div>
     </div>
 
@@ -303,8 +303,8 @@
   // ── Char counter ──────────────────────────────────────────
   contentEl.addEventListener("input", () => {
     const n = contentEl.value.length;
-    charCount.textContent = `${n} / 8000`;
-    charCount.style.color = n > 7500 ? "var(--danger)" : "var(--text-muted)";
+    charCount.textContent = `${n} / 30000`;
+    charCount.style.color = n > 28500 ? "var(--danger)" : "var(--text-muted)";
   });
 
   // ── Show toast ────────────────────────────────────────────
@@ -341,7 +341,7 @@
       showToast("success", `Note posted! ID: ${data.note.id}`);
       titleEl.value   = "";
       contentEl.value = "";
-      charCount.textContent = "0 / 8000";
+      charCount.textContent = "0 / 30000";
       loadRecentNotes();
     } catch (err) {
       showToast("error", err.message);
