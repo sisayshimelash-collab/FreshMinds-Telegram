@@ -32,7 +32,6 @@
     .note-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
     .note-date { font-size: 0.68rem; color: #444; letter-spacing: 0.05em; }
     .note-divider { flex: 1; height: 1px; background: #1c1c1c; }
-    .watermark-banner { margin-bottom: 20px; padding: 10px; background: rgba(212,255,78,.05); border-left: 2px solid var(--accent); font-size: 0.75rem; color: var(--accent); letter-spacing: 0.05em; }
     #note-title { font-family: var(--font-head); font-size: clamp(1.4rem, 5vw, 2rem); font-weight: 800; line-height: 1.15; letter-spacing: -0.03em; margin-bottom: 28px; color: #ffffff; }
     #note-title::after { content: ''; display: block; width: 40px; height: 3px; background: var(--accent); border-radius: 2px; margin-top: 14px; }
     #note-content { font-family: var(--font-body); font-size: 0.92rem; line-height: 1.85; color: #cccccc; white-space: pre-wrap; word-break: break-word; }
@@ -49,8 +48,6 @@
   </style>
 </head>
 <body>
-
-<!-- Loading -->
 <div id="loading-screen">
   <div class="loader-inner">
     <div class="loader-logo">
@@ -60,7 +57,6 @@
   </div>
 </div>
 
-<!-- Error -->
 <div id="error-screen">
   <div>
     <div class="error-emoji">📭</div>
@@ -69,7 +65,6 @@
   </div>
 </div>
 
-<!-- Note -->
 <div id="note-wrapper">
   <div class="top-bar">
     <div class="top-bar-brand">
@@ -78,28 +73,20 @@
     </div>
     <span class="premium-tag">Premium</span>
   </div>
-  
   <div class="scroll-hint">↕ scroll to read</div>
-
   <div class="note-body">
     <div class="note-meta">
       <span class="note-date" id="note-date">—</span>
       <div class="note-divider"></div>
     </div>
-
-    <!-- WATERMARK BANNER -->
-    <div class="watermark-banner">
-      📌 <span id="watermark">Loading...</span>
-    </div>
-
     <h1 id="note-title"></h1>
     <div id="note-content"></div>
   </div>
 </div>
-
 <div class="bottom-fade"></div>
 
 <script>
+  /* SECURITY: Telegram-Only Access Lock */
   const tg = window.Telegram?.WebApp;
   const isInTelegram = !!(tg && tg.initData && tg.initData.length > 0);
   
@@ -114,16 +101,22 @@
         .icon { font-size:5rem; margin-bottom:30px; }
         h1 { font-size:2rem; margin:0 0 15px 0; font-weight:bold; }
         p { color:#aaa; margin:0 0 10px 0; font-size:1rem; }
+        hr { border:none; border-top:1px solid #333; margin:30px 0; }
+        .hint { color:#666; font-size:0.9rem; }
       </style>
       </head><body>
         <div class="lock">
           <div class="icon">🔐</div>
           <h1>Access Restricted</h1>
-          <p>Open via FreshMinds Academy channel</p>
+          <p>This note is locked to Telegram only.</p>
+          <hr>
+          <p class="hint">✓ Open via FreshMinds Academy channel</p>
+          <p class="hint">✓ Click the "📖 Open Note" button</p>
+          <p class="hint">✓ Note closes when you exit Telegram</p>
         </div>
       </body></html>
     `;
-    throw new Error('Not in Telegram');
+    throw new Error('Access denied: Not in Telegram');
   }
   
   if (tg) {
@@ -132,10 +125,6 @@
     tg.setBackgroundColor("#000000");
     tg.enableClosingConfirmation && tg.enableClosingConfirmation();
   }
-
-  const user = tg?.initDataUnsafe?.user;
-  const studentId = user ? `${user.first_name} ${user.last_name || ''}`.trim() : "Student";
-  const userId = user?.id || "anonymous";
 
   document.addEventListener("contextmenu", e => e.preventDefault());
   document.addEventListener("selectstart", e => e.preventDefault());
@@ -163,17 +152,12 @@
       const res = await fetch(`/api/note/${encodeURIComponent(noteId)}`);
       if (!res.ok) throw new Error(res.status === 404 ? "Note not found." : "Server error.");
       const note = await res.json();
-
       document.getElementById("note-title").textContent = note.title;
       document.getElementById("note-content").innerHTML = renderContent(note.content);
       document.getElementById("note-date").textContent = formatDate(note.createdAt);
-      document.getElementById("watermark").textContent = `Viewed by: ${studentId}`;
-      
       document.title = note.title;
       hideLoading();
       document.getElementById("note-wrapper").classList.add("show");
-      
-      logAccess(noteId, studentId, userId);
     } catch (err) {
       showError(err.message);
     }
@@ -194,19 +178,6 @@
   function formatDate(iso) {
     if (!iso) return "";
     return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-  }
-
-  async function logAccess(noteId, studentName, userId) {
-    try {
-      await fetch("/api/log-access", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ noteId, studentName, userId, accessedAt: new Date().toISOString() })
-      });
-      console.log(`📊 Access logged for ${studentName}`);
-    } catch (err) {
-      console.log("Access log failed (non-critical):", err.message);
-    }
   }
 
   loadNote();
