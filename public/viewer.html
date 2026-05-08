@@ -8,7 +8,27 @@
   <link rel="stylesheet" href="style.css" />
   <style>
     * { -webkit-user-select: none !important; user-select: none !important; }
-    body { background: #000000; color: #f0f0f0; overscroll-behavior-y: contain; padding: 0; overflow-x: hidden; }
+    body { background: #000000; color: #f0f0f0; overscroll-behavior-y: contain; padding: 0; overflow-x: hidden; position: relative; }
+    
+    /* DIAGONAL WATERMARK */
+    body::before {
+      content: 'prepared by FreshMinds Exam Class';
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-45deg);
+      font-size: 3rem;
+      font-family: var(--font-head);
+      font-weight: 700;
+      color: rgba(212, 255, 78, 0.08);
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 1;
+      letter-spacing: 2px;
+      width: 200%;
+      text-align: center;
+    }
+    
     #loading-screen { position: fixed; inset: 0; background: #000; display: grid; place-items: center; z-index: 100; transition: opacity 0.3s ease; }
     #loading-screen.hidden { opacity: 0; pointer-events: none; }
     .loader-inner { text-align: center; }
@@ -20,9 +40,9 @@
     .error-emoji { font-size: 3rem; margin-bottom: 16px; }
     .error-title { font-family: var(--font-head); font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
     .error-msg { color: var(--text-muted); font-size: 0.82rem; }
-    #note-wrapper { display: none; min-height: 100dvh; padding-bottom: env(safe-area-inset-bottom, 24px); }
+    #note-wrapper { display: none; min-height: 100dvh; padding-bottom: env(safe-area-inset-bottom, 24px); position: relative; z-index: 2; }
     #note-wrapper.show { display: block; }
-    .top-bar { position: sticky; top: 0; background: rgba(0,0,0,.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid #1c1c1c; padding: 14px 20px; display: flex; align-items: center; gap: 12px; z-index: 10; }
+    .top-bar { position: sticky; top: 0; background: rgba(0,0,0,.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid #1c1c1c; padding: 14px 20px; display: flex; align-items: center; gap: 12px; z-index: 10; }
     .top-bar-brand { display: flex; align-items: center; gap: 8px; }
     .brand-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; flex-shrink: 0; }
     .brand-name { font-family: var(--font-head); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.03em; color: #888; }
@@ -44,13 +64,28 @@
     #note-content .inline-code { background: #161616; border: 1px solid #252525; border-radius: 4px; padding: 1px 6px; font-size: 0.84em; color: var(--accent); }
     #note-content .blockquote { border-left: 3px solid var(--accent); padding: 4px 0 4px 16px; margin: 16px 0; color: #888; font-style: italic; }
     #note-content .hr { border: none; border-top: 1px solid #1c1c1c; margin: 24px 0; }
-    .bottom-fade { position: fixed; bottom: 0; left: 0; right: 0; height: 80px; background: linear-gradient(transparent, #000); pointer-events: none; }
+    
+    /* CTA SECTION */
+    .cta-section {
+      margin-top: 60px;
+      padding: 40px 20px;
+      background: linear-gradient(135deg, rgba(212,255,78,.08) 0%, rgba(212,255,78,.03) 100%);
+      border: 1px solid rgba(212,255,78,.15);
+      border-radius: 8px;
+      text-align: center;
+    }
+    .cta-emoji { font-size: 2.5rem; margin-bottom: 16px; }
+    .cta-title { font-family: var(--font-head); font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; color: var(--accent); }
+    .cta-text { font-size: 0.85rem; color: #aaa; margin-bottom: 16px; line-height: 1.6; }
+    .cta-button { display: inline-block; padding: 12px 24px; background: var(--accent); color: #000; text-decoration: none; border-radius: 6px; font-family: var(--font-head); font-weight: 700; font-size: 0.85rem; transition: opacity 0.2s; }
+    .cta-button:hover { opacity: 0.8; }
+    
+    .bottom-fade { position: fixed; bottom: 0; left: 0; right: 0; height: 80px; background: linear-gradient(transparent, #000); pointer-events: none; z-index: 1; }
     body { -webkit-touch-callout: none; }
   </style>
 </head>
 <body>
 
-<!-- Loading -->
 <div id="loading-screen">
   <div class="loader-inner">
     <div class="loader-logo">
@@ -60,7 +95,6 @@
   </div>
 </div>
 
-<!-- Error -->
 <div id="error-screen">
   <div>
     <div class="error-emoji">📭</div>
@@ -69,7 +103,6 @@
   </div>
 </div>
 
-<!-- Note -->
 <div id="note-wrapper">
   <div class="top-bar">
     <div class="top-bar-brand">
@@ -87,24 +120,27 @@
       <div class="note-divider"></div>
     </div>
 
-    <!-- WATERMARK BANNER -->
     <div class="watermark-banner">
       📌 <span id="watermark">Loading...</span>
     </div>
 
     <h1 id="note-title"></h1>
     <div id="note-content"></div>
+    
+    <!-- CALL TO ACTION -->
+    <div class="cta-section">
+      <div class="cta-emoji">🎓</div>
+      <div class="cta-title">Join FreshMinds Exam Class</div>
+      <div class="cta-text">Get access to premium study materials, exclusive practice tests, and expert guidance to excel in your exams.</div>
+      <a href="https://t.me/freshexams_bot" class="cta-button" target="_blank">Join Now →</a>
+    </div>
   </div>
 </div>
 
 <div class="bottom-fade"></div>
 
 <script>
-  // Telegram Mini App detection
   const tg = window.Telegram?.WebApp;
-  
-  // For web_app buttons, tg.initData will be present
-  const isInTelegram = !!(tg && typeof tg.initData !== 'undefined');
   
   if (tg) {
     tg.ready();
@@ -113,11 +149,8 @@
     tg.enableClosingConfirmation && tg.enableClosingConfirmation();
   }
 
-  // Get student info if in Telegram
   const user = tg?.initDataUnsafe?.user;
-  const studentId = isInTelegram && user 
-    ? `${user.first_name} ${user.last_name || ''}`.trim() 
-    : "Anonymous";
+  const studentId = user ? `${user.first_name} ${user.last_name || ''}`.trim() : "Student";
   const userId = user?.id || null;
 
   document.addEventListener("contextmenu", e => e.preventDefault());
@@ -150,20 +183,12 @@
       document.getElementById("note-title").textContent = note.title;
       document.getElementById("note-content").innerHTML = renderContent(note.content);
       document.getElementById("note-date").textContent = formatDate(note.createdAt);
-      
-      // Show watermark with student name
-      const watermarkEl = document.getElementById("watermark");
-      if (isInTelegram) {
-        watermarkEl.textContent = `Viewed by: ${studentId}`;
-      } else {
-        watermarkEl.textContent = `Accessed: ${new Date().toLocaleDateString()}`;
-      }
+      document.getElementById("watermark").textContent = `Viewed by: ${studentId}`;
       
       document.title = note.title;
       hideLoading();
       document.getElementById("note-wrapper").classList.add("show");
       
-      // Log access if we have student info
       if (userId) {
         logAccess(noteId, studentId, userId);
       }
