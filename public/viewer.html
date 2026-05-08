@@ -306,6 +306,21 @@
      Telegram Mini App init
   ────────────────────────────────────────────────────────── */
   const tg = window.Telegram?.WebApp;
+
+// SECURITY: Only allow access from within Telegram
+if (!tg) {
+  document.body.innerHTML = `
+    <div style="display:grid; place-items:center; height:100vh; background:#000; color:#f0f0f0; text-align:center; padding:20px;">
+      <div>
+        <div style="font-size:3rem; margin-bottom:20px;">🔒</div>
+        <h1 style="font-size:1.5rem; margin-bottom:10px;">Access Restricted</h1>
+        <p style="color:#999;">This note can only be viewed inside Telegram.</p>
+        <p style="color:#666; font-size:0.9rem; margin-top:20px;">Open the note via your FreshMinds channel.</p>
+      </div>
+    </div>
+  `;
+  throw new Error('Not in Telegram');
+}
   if (tg) {
     tg.ready();
     tg.setHeaderColor("#000000");
