@@ -107,9 +107,7 @@ app.post("/api/note", async (req, res) => {
         .sendMessage(CHANNEL_ID, `📘 *${escapeMarkdown(title)}*`, {
           parse_mode: "MarkdownV2",
           reply_markup: {
-            inline_keyboard: [
-              [{ text: "📖 Open Note", web_app: { url: viewerUrl } }],
-            ],
+            inline_keyboard: [[{ text: "📖 Open Note", url: viewerUrl }]],
           },
         })
         .then((msg) => {
