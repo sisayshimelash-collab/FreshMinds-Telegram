@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FreshMinds — Admin</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── Layout ────────────────────────────────────────────── */
+    body {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100dvh;
+    }
+
+    /* ── Header ────────────────────────────────────────────── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .logo-mark {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: grid; place-items: center;
+      flex-shrink: 0;
+    }
+    .logo-mark svg { width: 20px; height: 20px; }
+    .logo-text { font-family: var(--font-head); font-size: 1rem; font-weight: 700; }
+    .logo-text span { color: var(--text-muted); font-weight: 400; }
+    .badge {
+      margin-left: auto;
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent-dim);
+      background: var(--accent-dim);
+      padding: 3px 10px;
+      border-radius: 99px;
+    }
+
+    /* ── Main Grid ─────────────────────────────────────────── */
+    main {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 0;
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 40px 32px;
+      align-items: start;
+    }
+
+    /* ── Form Panel ────────────────────────────────────────── */
+    .form-panel { padding-right: 48px; }
+
+    .section-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .field { margin-bottom: 20px; }
+
+    label {
+      display: block;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    input[type="text"],
+    textarea {
+      width: 100%;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      padding: 14px 16px;
+      outline: none;
+      resize: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      line-height: 1.6;
+    }
+    input[type="text"]:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+    input[type="text"]::placeholder,
+    textarea::placeholder { color: var(--text-muted); }
+
+    textarea { height: 340px; }
+
+    /* ── Post Button ───────────────────────────────────────── */
+    .btn-post {
+      width: 100%;
+      padding: 16px;
+      background: var(--accent);
+      color: #0a0a0a;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font-head);
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 0.15s, transform 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-post:hover:not(:disabled) { opacity: 0.9; }
+    .btn-post:active:not(:disabled) { transform: scale(0.99); }
+    .btn-post:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* spinner inside button */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(0,0,0,.3);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: none;
+    }
+    .btn-post.loading .btn-label { display: none; }
+    .btn-post.loading .spinner   { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Toast ─────────────────────────────────────────────── */
+    #toast {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      font-size: 0.8rem;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      animation: fadeIn 0.2s ease;
+    }
+    #toast.show { display: flex; }
+    #toast.success {
+      background: rgba(78,255,154,.1);
+      border: 1px solid rgba(78,255,154,.3);
+      color: var(--success);
+    }
+    #toast.error {
+      background: rgba(255,78,78,.1);
+      border: 1px solid rgba(255,78,78,.3);
+      color: var(--danger);
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    /* ── Sidebar ───────────────────────────────────────────── */
+    .sidebar {
+      border-left: 1px solid var(--border);
+      padding-left: 40px;
+    }
+
+    .note-list { list-style: none; margin-top: 8px; }
+    .note-item {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: padding-left 0.15s;
+    }
+    .note-item:hover { padding-left: 6px; }
+    .note-item:last-child { border-bottom: none; }
+    .note-item-title {
+      font-family: var(--font-head);
+      font-size: 0.85rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .note-item-date {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .empty-list {
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      text-align: center;
+      padding: 32px 0;
+    }
+
+    /* ── Char counter ──────────────────────────────────────── */
+    .field-meta {
+      display: flex;
+      justify-content: flex-end;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    /* ── Responsive ────────────────────────────────────────── */
+    @media (max-width: 700px) {
+      main {
+        grid-template-columns: 1fr;
+        padding: 24px 20px;
+      }
+      .form-panel { padding-right: 0; margin-bottom: 40px; }
+      .sidebar { border-left: none; border-top: 1px solid var(--border); padding-left: 0; padding-top: 32px; }
+      header { padding: 16px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">
+    <svg viewBox="0 0 20 20" fill="#0a0a0a"><path d="M10 2L3 7v11h5v-5h4v5h5V7L10 2z"/></svg>
+  </div>
+  <div class="logo-text">FreshMinds <span>Academy</span></div>
+  <span class="badge">Admin</span>
+</header>
+
+<main>
+  <!-- ── Form ── -->
+  <section class="form-panel">
+    <p class="section-label">Compose Note</p>
+
+    <div class="field">
+      <label for="title">Note Title</label>
+      <input
+        id="title"
+        type="text"
+        maxlength="120"
+        placeholder="e.g. Logic — Chapter 5, Part 1"
+        autocomplete="off"
+        spellcheck="false"
+      />
+    </div>
+
+    <div class="field">
+      <label for="content">Content</label>
+      <textarea
+        id="content"
+        maxlength="8000"
+        placeholder="Write your premium note here. Markdown-style formatting is supported in the viewer…"
+        spellcheck="true"
+      ></textarea>
+      <div class="field-meta">
+        <span id="char-count">0 / 8000</span>
+      </div>
+    </div>
+
+    <button class="btn-post" id="btn-post">
+      <span class="btn-label">📤 &nbsp;POST NOTE</span>
+      <span class="spinner"></span>
+    </button>
+
+    <div id="toast">
+      <span id="toast-icon"></span>
+      <span id="toast-msg"></span>
+    </div>
+  </section>
+
+  <!-- ── Recent Notes ── -->
+  <aside class="sidebar">
+    <p class="section-label">Recent Notes</p>
+    <ul class="note-list" id="note-list">
+      <li class="empty-list">Loading…</li>
+    </ul>
+  </aside>
+</main>
+
+<script>
+  const titleEl    = document.getElementById("title");
+  const contentEl  = document.getElementById("content");
+  const btnPost    = document.getElementById("btn-post");
+  const toast      = document.getElementById("toast");
+  const toastMsg   = document.getElementById("toast-msg");
+  const toastIcon  = document.getElementById("toast-icon");
+  const charCount  = document.getElementById("char-count");
+  const noteList   = document.getElementById("note-list");
+
+  // ── Char counter ──────────────────────────────────────────
+  contentEl.addEventListener("input", () => {
+    const n = contentEl.value.length;
+    charCount.textContent = `${n} / 8000`;
+    charCount.style.color = n > 7500 ? "var(--danger)" : "var(--text-muted)";
+  });
+
+  // ── Show toast ────────────────────────────────────────────
+  let toastTimer;
+  function showToast(type, msg) {
+    clearTimeout(toastTimer);
+    toast.className       = `show ${type}`;
+    toastIcon.textContent = type === "success" ? "✅" : "❌";
+    toastMsg.textContent  = msg;
+    toastTimer = setTimeout(() => { toast.className = ""; }, 5000);
+  }
+
+  // ── Post note ─────────────────────────────────────────────
+  btnPost.addEventListener("click", async () => {
+    const title   = titleEl.value.trim();
+    const content = contentEl.value.trim();
+
+    if (!title)   return showToast("error", "Please enter a title.");
+    if (!content) return showToast("error", "Please enter some content.");
+
+    btnPost.disabled = true;
+    btnPost.classList.add("loading");
+
+    try {
+      const res  = await fetch("/api/note", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, content }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || "Server error");
+
+      showToast("success", `Note posted! ID: ${data.note.id}`);
+      titleEl.value   = "";
+      contentEl.value = "";
+      charCount.textContent = "0 / 8000";
+      loadRecentNotes();
+    } catch (err) {
+      showToast("error", err.message);
+    } finally {
+      btnPost.disabled = false;
+      btnPost.classList.remove("loading");
+    }
+  });
+
+  // ── Load recent notes ─────────────────────────────────────
+  async function loadRecentNotes() {
+    try {
+      const res   = await fetch("/api/notes");
+      const notes = await res.json();
+
+      if (!notes.length) {
+        noteList.innerHTML = `<li class="empty-list">No notes yet. Create your first one!</li>`;
+        return;
+      }
+
+      noteList.innerHTML = notes.slice(0, 20).map(n => `
+        <li class="note-item" onclick="window.open('/viewer.html?note=${encodeURIComponent(n.id)}','_blank')">
+          <div class="note-item-title">${escapeHtml(n.title)}</div>
+          <div class="note-item-date">${formatDate(n.createdAt)} · ${n.id}</div>
+        </li>
+      `).join("");
+    } catch {
+      noteList.innerHTML = `<li class="empty-list">Failed to load notes.</li>`;
+    }
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+  function formatDate(iso) {
+    return new Date(iso).toLocaleDateString("en-GB", {
+      day: "2-digit", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit"
+    });
+  }
+
+  // ── Init ──────────────────────────────────────────────────
+  loadRecentNotes();
+
+  // Allow Ctrl+Enter to submit
+  document.addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") btnPost.click();
+  });
+</script>
+</body>
+</html>

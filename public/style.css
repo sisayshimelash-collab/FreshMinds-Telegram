@@ -1,0 +1,53 @@
+/* ════════════════════════════════════════════════════════════
+   FreshMinds Academy – Shared Stylesheet
+   Aesthetic: Editorial dark, geometric, refined
+   ════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+
+/* ── Reset ───────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:          #0a0a0a;
+  --bg-2:        #111111;
+  --bg-3:        #1a1a1a;
+  --border:      #2a2a2a;
+  --border-hi:   #3d3d3d;
+  --accent:      #d4ff4e;       /* electric lime – the memorable detail */
+  --accent-dim:  rgba(212,255,78,.15);
+  --text:        #f0f0f0;
+  --text-muted:  #666666;
+  --text-dim:    #999999;
+  --danger:      #ff4e4e;
+  --success:     #4eff9a;
+  --radius:      6px;
+  --font-head:   'Syne', sans-serif;
+  --font-body:   'DM Mono', monospace;
+}
+
+html { font-size: 16px; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+}
+
+/* ── Typography ──────────────────────────────────────────── */
+h1, h2, h3 { font-family: var(--font-head); letter-spacing: -0.02em; }
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 99px; }
+
+/* ── Utility ─────────────────────────────────────────────── */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); border: 0;
+}
