@@ -4,261 +4,50 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>FreshMinds Note</title>
-
-  <!-- Telegram Mini Apps SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
   <link rel="stylesheet" href="style.css" />
   <style>
-    /* ══════════════════════════════════════════════════════
-       Viewer — Telegram Mini App
-       Pure black, editorial reading experience
-    ══════════════════════════════════════════════════════ */
-
-    /* ── Security / UX ──────────────────────────────────── */
-    * {
-      -webkit-user-select: none !important;
-      user-select: none !important;
-    }
-    /* allow selecting note text only via long-press (feel) but we keep off */
-
-    body {
-      background: #000000;
-      color: #f0f0f0;
-      overscroll-behavior-y: contain;   /* enables swipe-down dismiss */
-      padding: 0;
-      overflow-x: hidden;
-    }
-
-    /* ── Loading Screen ─────────────────────────────────── */
-    #loading-screen {
-      position: fixed; inset: 0;
-      background: #000;
-      display: grid; place-items: center;
-      z-index: 100;
-      transition: opacity 0.3s ease;
-    }
+    * { -webkit-user-select: none !important; user-select: none !important; }
+    body { background: #000000; color: #f0f0f0; overscroll-behavior-y: contain; padding: 0; overflow-x: hidden; }
+    #loading-screen { position: fixed; inset: 0; background: #000; display: grid; place-items: center; z-index: 100; transition: opacity 0.3s ease; }
     #loading-screen.hidden { opacity: 0; pointer-events: none; }
-
     .loader-inner { text-align: center; }
-    .loader-logo {
-      width: 48px; height: 48px;
-      background: var(--accent);
-      border-radius: 12px;
-      margin: 0 auto 20px;
-      display: grid; place-items: center;
-      animation: pulse 1.4s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { transform: scale(1);   opacity: 1; }
-      50%       { transform: scale(.9); opacity: .7; }
-    }
-    .loader-text {
-      font-family: var(--font-head);
-      font-size: 0.75rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-    }
-
-    /* ── Error Screen ───────────────────────────────────── */
-    #error-screen {
-      display: none;
-      position: fixed; inset: 0;
-      background: #000;
-      place-items: center;
-      padding: 40px;
-      text-align: center;
-    }
+    .loader-logo { width: 48px; height: 48px; background: var(--accent); border-radius: 12px; margin: 0 auto 20px; display: grid; place-items: center; animation: pulse 1.4s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(.9); opacity: .7; } }
+    .loader-text { font-family: var(--font-head); font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); }
+    #error-screen { display: none; position: fixed; inset: 0; background: #000; place-items: center; padding: 40px; text-align: center; }
     #error-screen.show { display: grid; }
     .error-emoji { font-size: 3rem; margin-bottom: 16px; }
-    .error-title {
-      font-family: var(--font-head);
-      font-size: 1.2rem;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
+    .error-title { font-family: var(--font-head); font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
     .error-msg { color: var(--text-muted); font-size: 0.82rem; }
-
-    /* ── Note Wrapper ───────────────────────────────────── */
-    #note-wrapper {
-      display: none;
-      min-height: 100dvh;
-      padding-bottom: env(safe-area-inset-bottom, 24px);
-    }
+    #note-wrapper { display: none; min-height: 100dvh; padding-bottom: env(safe-area-inset-bottom, 24px); }
     #note-wrapper.show { display: block; }
-
-    /* ── Top Bar ────────────────────────────────────────── */
-    .top-bar {
-      position: sticky; top: 0;
-      background: rgba(0,0,0,.85);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid #1c1c1c;
-      padding: 14px 20px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      z-index: 10;
-    }
-    .top-bar-brand {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .brand-dot {
-      width: 8px; height: 8px;
-      background: var(--accent);
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    .brand-name {
-      font-family: var(--font-head);
-      font-size: 0.78rem;
-      font-weight: 700;
-      letter-spacing: 0.03em;
-      color: #888;
-    }
-    .premium-tag {
-      margin-left: auto;
-      font-size: 0.6rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--accent);
-      border: 1px solid rgba(212,255,78,.25);
-      padding: 3px 8px;
-      border-radius: 99px;
-    }
-
-    /* ── Scroll hint ─────────────────────────────────────── */
-    .scroll-hint {
-      text-align: center;
-      padding: 10px 0 2px;
-      color: #333;
-      font-size: 0.65rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    /* ── Note Content ───────────────────────────────────── */
-    .note-body {
-      padding: 28px 22px 60px;
-      max-width: 640px;
-      margin: 0 auto;
-    }
-
-    .note-meta {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    .note-date {
-      font-size: 0.68rem;
-      color: #444;
-      letter-spacing: 0.05em;
-    }
-    .note-divider {
-      flex: 1;
-      height: 1px;
-      background: #1c1c1c;
-    }
-
-    #note-title {
-      font-family: var(--font-head);
-      font-size: clamp(1.4rem, 5vw, 2rem);
-      font-weight: 800;
-      line-height: 1.15;
-      letter-spacing: -0.03em;
-      margin-bottom: 28px;
-      color: #ffffff;
-    }
-    /* accent underline on title */
-    #note-title::after {
-      content: '';
-      display: block;
-      width: 40px; height: 3px;
-      background: var(--accent);
-      border-radius: 2px;
-      margin-top: 14px;
-    }
-
-    #note-content {
-      font-family: var(--font-body);
-      font-size: 0.92rem;
-      line-height: 1.85;
-      color: #cccccc;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    /* ── Inline formatting inside content ───────────────── */
+    .top-bar { position: sticky; top: 0; background: rgba(0,0,0,.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid #1c1c1c; padding: 14px 20px; display: flex; align-items: center; gap: 12px; z-index: 10; }
+    .top-bar-brand { display: flex; align-items: center; gap: 8px; }
+    .brand-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; flex-shrink: 0; }
+    .brand-name { font-family: var(--font-head); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.03em; color: #888; }
+    .premium-tag { margin-left: auto; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); border: 1px solid rgba(212,255,78,.25); padding: 3px 8px; border-radius: 99px; }
+    .scroll-hint { text-align: center; padding: 10px 0 2px; color: #333; font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; }
+    .note-body { padding: 28px 22px 60px; max-width: 640px; margin: 0 auto; }
+    .note-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    .note-date { font-size: 0.68rem; color: #444; letter-spacing: 0.05em; }
+    .note-divider { flex: 1; height: 1px; background: #1c1c1c; }
+    #note-title { font-family: var(--font-head); font-size: clamp(1.4rem, 5vw, 2rem); font-weight: 800; line-height: 1.15; letter-spacing: -0.03em; margin-bottom: 28px; color: #ffffff; }
+    #note-title::after { content: ''; display: block; width: 40px; height: 3px; background: var(--accent); border-radius: 2px; margin-top: 14px; }
+    #note-content { font-family: var(--font-body); font-size: 0.92rem; line-height: 1.85; color: #cccccc; white-space: pre-wrap; word-break: break-word; }
     #note-content strong { color: #ffffff; font-weight: 500; }
-    #note-content em     { color: #aaaaaa; font-style: italic; }
-
-    /* basic markdown transforms handled in JS */
-    #note-content .heading-1 {
-      font-family: var(--font-head);
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: #ffffff;
-      margin: 28px 0 10px;
-      letter-spacing: -0.02em;
-    }
-    #note-content .heading-2 {
-      font-family: var(--font-head);
-      font-size: 1rem;
-      font-weight: 600;
-      color: #dddddd;
-      margin: 22px 0 8px;
-    }
-    #note-content .code-block {
-      background: #111;
-      border: 1px solid #222;
-      border-radius: 6px;
-      padding: 14px 16px;
-      font-size: 0.82rem;
-      color: var(--accent);
-      overflow-x: auto;
-      margin: 16px 0;
-      white-space: pre;
-    }
-    #note-content .inline-code {
-      background: #161616;
-      border: 1px solid #252525;
-      border-radius: 4px;
-      padding: 1px 6px;
-      font-size: 0.84em;
-      color: var(--accent);
-    }
-    #note-content .blockquote {
-      border-left: 3px solid var(--accent);
-      padding: 4px 0 4px 16px;
-      margin: 16px 0;
-      color: #888;
-      font-style: italic;
-    }
-    #note-content .hr {
-      border: none;
-      border-top: 1px solid #1c1c1c;
-      margin: 24px 0;
-    }
-
-    /* ── Bottom padding / fade ───────────────────────────── */
-    .bottom-fade {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      height: 80px;
-      background: linear-gradient(transparent, #000);
-      pointer-events: none;
-    }
-
-    /* Context menu suppression */
+    #note-content em { color: #aaaaaa; font-style: italic; }
+    #note-content .heading-1 { font-family: var(--font-head); font-size: 1.25rem; font-weight: 700; color: #ffffff; margin: 28px 0 10px; letter-spacing: -0.02em; }
+    #note-content .heading-2 { font-family: var(--font-head); font-size: 1rem; font-weight: 600; color: #dddddd; margin: 22px 0 8px; }
+    #note-content .code-block { background: #111; border: 1px solid #222; border-radius: 6px; padding: 14px 16px; font-size: 0.82rem; color: var(--accent); overflow-x: auto; margin: 16px 0; white-space: pre; }
+    #note-content .inline-code { background: #161616; border: 1px solid #252525; border-radius: 4px; padding: 1px 6px; font-size: 0.84em; color: var(--accent); }
+    #note-content .blockquote { border-left: 3px solid var(--accent); padding: 4px 0 4px 16px; margin: 16px 0; color: #888; font-style: italic; }
+    #note-content .hr { border: none; border-top: 1px solid #1c1c1c; margin: 24px 0; }
+    .bottom-fade { position: fixed; bottom: 0; left: 0; right: 0; height: 80px; background: linear-gradient(transparent, #000); pointer-events: none; }
     body { -webkit-touch-callout: none; }
   </style>
 </head>
 <body>
-
-<!-- Loading -->
 <div id="loading-screen">
   <div class="loader-inner">
     <div class="loader-logo">
@@ -268,7 +57,6 @@
   </div>
 </div>
 
-<!-- Error -->
 <div id="error-screen">
   <div>
     <div class="error-emoji">📭</div>
@@ -277,7 +65,6 @@
   </div>
 </div>
 
-<!-- Note -->
 <div id="note-wrapper">
   <div class="top-bar">
     <div class="top-bar-brand">
@@ -286,9 +73,7 @@
     </div>
     <span class="premium-tag">Premium</span>
   </div>
-
   <div class="scroll-hint">↕ scroll to read</div>
-
   <div class="note-body">
     <div class="note-meta">
       <span class="note-date" id="note-date">—</span>
@@ -298,105 +83,79 @@
     <div id="note-content"></div>
   </div>
 </div>
-
 <div class="bottom-fade"></div>
 
 <script>
-  /* ──────────────────────────────────────────────────────────
-     Telegram Mini App init
-  ────────────────────────────────────────────────────────── */
+  /* SECURITY: Telegram-Only Access Lock */
   const tg = window.Telegram?.WebApp;
-
-// SECURITY: Only allow access from within Telegram
-if (!tg) {
-  document.body.innerHTML = `
-    <div style="display:grid; place-items:center; height:100vh; background:#000; color:#f0f0f0; text-align:center; padding:20px;">
-      <div>
-        <div style="font-size:3rem; margin-bottom:20px;">🔒</div>
-        <h1 style="font-size:1.5rem; margin-bottom:10px;">Access Restricted</h1>
-        <p style="color:#999;">This note can only be viewed inside Telegram.</p>
-        <p style="color:#666; font-size:0.9rem; margin-top:20px;">Open the note via your FreshMinds channel.</p>
-      </div>
-    </div>
-  `;
-  throw new Error('Not in Telegram');
-}
+  const isInTelegram = !!(tg && tg.initData && tg.initData.length > 0);
+  
+  if (!isInTelegram) {
+    document.documentElement.innerHTML = `
+      <!DOCTYPE html>
+      <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Access Denied</title>
+      <style>
+        body { margin:0; padding:0; background:#000; display:grid; place-items:center; min-height:100vh; font-family:monospace; color:#f0f0f0; text-align:center; }
+        .lock { padding:40px; max-width:500px; }
+        .icon { font-size:5rem; margin-bottom:30px; }
+        h1 { font-size:2rem; margin:0 0 15px 0; font-weight:bold; }
+        p { color:#aaa; margin:0 0 10px 0; font-size:1rem; }
+        hr { border:none; border-top:1px solid #333; margin:30px 0; }
+        .hint { color:#666; font-size:0.9rem; }
+      </style>
+      </head><body>
+        <div class="lock">
+          <div class="icon">🔐</div>
+          <h1>Access Restricted</h1>
+          <p>This note is locked to Telegram only.</p>
+          <hr>
+          <p class="hint">✓ Open via FreshMinds Academy channel</p>
+          <p class="hint">✓ Click the "📖 Open Note" button</p>
+          <p class="hint">✓ Note closes when you exit Telegram</p>
+        </div>
+      </body></html>
+    `;
+    throw new Error('Access denied: Not in Telegram');
+  }
+  
   if (tg) {
     tg.ready();
     tg.setHeaderColor("#000000");
     tg.setBackgroundColor("#000000");
     tg.enableClosingConfirmation && tg.enableClosingConfirmation();
-    // Allow swipe-down to dismiss naturally (do NOT call tg.expand())
   }
 
-  /* ──────────────────────────────────────────────────────────
-     Context menu / selection lock
-  ────────────────────────────────────────────────────────── */
   document.addEventListener("contextmenu", e => e.preventDefault());
-  document.addEventListener("selectstart",  e => e.preventDefault());
+  document.addEventListener("selectstart", e => e.preventDefault());
 
-  /* ──────────────────────────────────────────────────────────
-     Get note ID from URL
-  ────────────────────────────────────────────────────────── */
   const params = new URLSearchParams(window.location.search);
   const noteId = params.get("note");
 
-  /* ──────────────────────────────────────────────────────────
-     Simple markdown-ish renderer (no library needed)
-  ────────────────────────────────────────────────────────── */
   function renderContent(raw) {
-    // Escape HTML first
-    let s = raw
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-
-    // Code blocks  ```...```
-    s = s.replace(/```([\s\S]*?)```/g, (_, code) =>
-      `<div class="code-block">${code.trim()}</div>`
-    );
-
-    // Inline code `...`
+    let s = raw.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    s = s.replace(/```([\s\S]*?)```/g, (_, code) => `<div class="code-block">${code.trim()}</div>`);
     s = s.replace(/`([^`]+)`/g, '<span class="inline-code">$1</span>');
-
-    // Bold **...**
     s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-
-    // Italic *...*
     s = s.replace(/\*(.+?)\*/g, "<em>$1</em>");
-
-    // Headings (line-by-line)
     s = s.replace(/^### (.+)$/gm, '<div class="heading-2">$1</div>');
-    s = s.replace(/^## (.+)$/gm,  '<div class="heading-1">$1</div>');
-    s = s.replace(/^# (.+)$/gm,   '<div class="heading-1">$1</div>');
-
-    // Blockquote
+    s = s.replace(/^## (.+)$/gm, '<div class="heading-1">$1</div>');
+    s = s.replace(/^# (.+)$/gm, '<div class="heading-1">$1</div>');
     s = s.replace(/^&gt; (.+)$/gm, '<div class="blockquote">$1</div>');
-
-    // HR
     s = s.replace(/^---$/gm, '<div class="hr"></div>');
-
     return s;
   }
 
-  /* ──────────────────────────────────────────────────────────
-     Fetch & display
-  ────────────────────────────────────────────────────────── */
   async function loadNote() {
     if (!noteId) return showError("No note ID provided in the URL.");
-
     try {
-      const res  = await fetch(`/api/note/${encodeURIComponent(noteId)}`);
+      const res = await fetch(`/api/note/${encodeURIComponent(noteId)}`);
       if (!res.ok) throw new Error(res.status === 404 ? "Note not found." : "Server error.");
       const note = await res.json();
-
-      // Populate
       document.getElementById("note-title").textContent = note.title;
       document.getElementById("note-content").innerHTML = renderContent(note.content);
-      document.getElementById("note-date").textContent  = formatDate(note.createdAt);
+      document.getElementById("note-date").textContent = formatDate(note.createdAt);
       document.title = note.title;
-
-      // Show
       hideLoading();
       document.getElementById("note-wrapper").classList.add("show");
     } catch (err) {
@@ -418,12 +177,9 @@ if (!tg) {
 
   function formatDate(iso) {
     if (!iso) return "";
-    return new Date(iso).toLocaleDateString("en-GB", {
-      day: "numeric", month: "long", year: "numeric"
-    });
+    return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   }
 
-  // ── Boot ──────────────────────────────────────────────────
   loadNote();
 </script>
 </body>
