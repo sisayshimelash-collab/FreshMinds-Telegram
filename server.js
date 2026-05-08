@@ -107,9 +107,12 @@ app.post("/api/note", async (req, res) => {
         .sendMessage(CHANNEL_ID, `📘 *${escapeMarkdown(title)}*`, {
           parse_mode: "MarkdownV2",
           reply_markup: {
-            inline_keyboard: [[{ text: "📖 Open Note", url: viewerUrl }]],
+            inline_keyboard: [
+              [{ text: "📖 Open Note", web_app: { url: viewerUrl } }],
+            ],
           },
         })
+
         .then((msg) => {
           console.log(
             `✅ Telegram message sent! Message ID: ${msg.message_id}`,
@@ -159,6 +162,24 @@ app.post("/api/log-access", (req, res) => {
   res.json({ success: true });
 });
 
+// POST /api/log-access - log student access
+app.post("/api/log-access", (req, res) => {
+  const { noteId, studentName, userId, accessedAt } = req.body;
+  const logPath = path.join(__dirname, "data", "access-log.json");
+  
+  let log = [];
+  try {
+    log = JSON.parse(fs.readFileSync(logPath, "utf8"));
+  } catch {
+    log = [];
+  }
+  
+  log.push({ noteId, studentName, userId, accessedAt });
+  fs.writeFileSync(logPath, JSON.stringify(log, null, 2), "utf8");
+  console.log(`📊 Access logged: ${studentName} viewed ${noteId}`);
+  
+  res.json({ success: true });
+});
 // ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`🚀 FreshMinds Academy running at http://localhost:${PORT}`);

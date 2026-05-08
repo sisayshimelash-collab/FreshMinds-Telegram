@@ -100,31 +100,11 @@
 <div class="bottom-fade"></div>
 
 <script>
+  // Telegram Mini App detection
   const tg = window.Telegram?.WebApp;
-  const isInTelegram = !!(tg && tg.initData && tg.initData.length > 0);
   
-  if (!isInTelegram) {
-    document.documentElement.innerHTML = `
-      <!DOCTYPE html>
-      <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Access Denied</title>
-      <style>
-        body { margin:0; padding:0; background:#000; display:grid; place-items:center; min-height:100vh; font-family:monospace; color:#f0f0f0; text-align:center; }
-        .lock { padding:40px; max-width:500px; }
-        .icon { font-size:5rem; margin-bottom:30px; }
-        h1 { font-size:2rem; margin:0 0 15px 0; font-weight:bold; }
-        p { color:#aaa; margin:0 0 10px 0; font-size:1rem; }
-      </style>
-      </head><body>
-        <div class="lock">
-          <div class="icon">🔐</div>
-          <h1>Access Restricted</h1>
-          <p>Open via FreshMinds Academy channel</p>
-        </div>
-      </body></html>
-    `;
-    throw new Error('Not in Telegram');
-  }
+  // For web_app buttons, tg.initData will be present
+  const isInTelegram = !!(tg && typeof tg.initData !== 'undefined');
   
   if (tg) {
     tg.ready();
@@ -133,9 +113,12 @@
     tg.enableClosingConfirmation && tg.enableClosingConfirmation();
   }
 
+  // Get student info if in Telegram
   const user = tg?.initDataUnsafe?.user;
-  const studentId = user ? `${user.first_name} ${user.last_name || ''}`.trim() : "Student";
-  const userId = user?.id || "anonymous";
+  const studentId = isInTelegram && user 
+    ? `${user.first_name} ${user.last_name || ''}`.trim() 
+    : "Anonymous";
+  const userId = user?.id || null;
 
   document.addEventListener("contextmenu", e => e.preventDefault());
   document.addEventListener("selectstart", e => e.preventDefault());
@@ -167,13 +150,23 @@
       document.getElementById("note-title").textContent = note.title;
       document.getElementById("note-content").innerHTML = renderContent(note.content);
       document.getElementById("note-date").textContent = formatDate(note.createdAt);
-      document.getElementById("watermark").textContent = `Viewed by: ${studentId}`;
+      
+      // Show watermark with student name
+      const watermarkEl = document.getElementById("watermark");
+      if (isInTelegram) {
+        watermarkEl.textContent = `Viewed by: ${studentId}`;
+      } else {
+        watermarkEl.textContent = `Accessed: ${new Date().toLocaleDateString()}`;
+      }
       
       document.title = note.title;
       hideLoading();
       document.getElementById("note-wrapper").classList.add("show");
       
-      logAccess(noteId, studentId, userId);
+      // Log access if we have student info
+      if (userId) {
+        logAccess(noteId, studentId, userId);
+      }
     } catch (err) {
       showError(err.message);
     }
@@ -203,9 +196,8 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ noteId, studentName, userId, accessedAt: new Date().toISOString() })
       });
-      console.log(`📊 Access logged for ${studentName}`);
     } catch (err) {
-      console.log("Access log failed (non-critical):", err.message);
+      console.log("Access log skipped:", err.message);
     }
   }
 
