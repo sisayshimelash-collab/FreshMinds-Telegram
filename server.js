@@ -112,6 +112,15 @@ function escapeMarkdown(text) {
   return text.replace(/([_*[\]()~`>#+\-=|{}.!\\])/g, "\\$1");
 }
 
+function escapeXml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 // ─── Express ──────────────────────────────────────────────────────────────────
 const app = express();
 app.use(cors());
@@ -146,6 +155,91 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// GET /feed.xml - RSS feed for Instant View
+app.get("/feed.xml", async (req, res) => {
+  const db = await readDB();
+  const notes = db.notes.slice(0, 50); // Last 50 notes
+  
+  let rss = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>FreshMinds Academy</title>
+    <link>${APP_URL}</link>
+    <description>Premium educational notes</description>
+    <atom:link href="${APP_URL}/feed.xml" rel="self" type="application/rss+xml"/>
+`;
+
+  notes.forEach(note => {
+    const noteUrl = `${APP_URL}/note/${note.id}`;
+    const content = escapeXml(note.content);
+    const title = escapeXml(note.title);
+    
+    rss += `
+    <item>
+      <title>${title}</title>
+      <link>${noteUrl}</link>
+      <guid>${noteUrl}</guid>
+      <pubDate>${new Date(note.createdAt).toUTCString()}</pubDate>
+      <description><![CDATA[${content}]]></description>
+    </item>`;
+  });
+
+  rss += `
+  </channel>
+</rss>`;
+
+  res.set('Content-Type', 'application/rss+xml');
+  res.send(rss);
+});
+
+// GET /note/:id - Single note page for Instant View
+app.get("/note/:id", async (req, res) => {
+  const db = await readDB();
+  const note = db.notes.find((n) => n.id === req.params.id);
+  
+  if (!note) {
+    return res.status(404).send(`
+      <!DOCTYPE html>
+      <html><head><meta charset="utf-8"><title>Note Not Found</title></head>
+      <body><h1>Note Not Found</h1></body></html>
+    `);
+  }
+  
+  const content = note.content
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>');
+  
+  res.send(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta property="og:title" content="${escapeXml(note.title)}">
+  <meta property="og:description" content="FreshMinds Academy Premium Note">
+  <meta property="og:type" content="article">
+  <meta property="article:published_time" content="${note.createdAt}">
+  <title>${escapeXml(note.title)} - FreshMinds Academy</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 680px; margin: 40px auto; padding: 20px; line-height: 1.6; }
+    h1 { font-size: 2em; margin-bottom: 0.5em; color: #1a1a1a; }
+    .meta { color: #666; font-size: 0.9em; margin-bottom: 2em; }
+    .content { font-size: 1.1em; color: #333; }
+    .watermark { background: #d4ff4e; padding: 10px; border-left: 3px solid #000; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <article>
+    <h1>${escapeXml(note.title)}</h1>
+    <div class="meta">Published: ${new Date(note.createdAt).toLocaleString()}</div>
+    <div class="watermark">📌 FreshMinds Academy Premium Content</div>
+    <div class="content">${content}</div>
+  </article>
+</body>
+</html>`);
+});
+
 // POST /api/note
 app.post("/api/note", async (req, res) => {
   try {
@@ -170,8 +264,8 @@ app.post("/api/note", async (req, res) => {
     await writeDB(db);
     console.log(`💾 Note saved: ${id}`);
 
-    // Send to Telegram (non-blocking — won't crash the response if it fails)
-    const viewerUrl = `${APP_URL}/viewer.html?note=${id}`;
+    // Send to Telegram with Instant View link
+    const noteUrl = `${APP_URL}/note/${id}`;
 
     console.log(`🔍 Debug: bot=${!!bot}, CHANNEL_ID=${CHANNEL_ID}, APP_URL=${APP_URL}`);
     
@@ -183,11 +277,10 @@ app.post("/api/note", async (req, res) => {
         setTimeout(() => reject(new Error('Request timeout after 10s')), 10000)
       );
 
-      const sendPromise = bot.sendMessage(CHANNEL_ID, `📘 *${escapeMarkdown(title)}*`, {
+      // Post with Instant View URL (Telegram will auto-generate IV if template exists)
+      const sendPromise = bot.sendMessage(CHANNEL_ID, `📘 *${escapeMarkdown(title)}*\n\n${noteUrl}`, {
         parse_mode: "MarkdownV2",
-        reply_markup: {
-          inline_keyboard: [[{ text: "📖 Open Note", url: viewerUrl }]],
-        },
+        disable_web_page_preview: false, // Enable preview for Instant View
       });
 
       // Race between send and timeout
