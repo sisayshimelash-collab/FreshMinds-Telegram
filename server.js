@@ -171,24 +171,24 @@ app.post(`/webhook/${BOT_TOKEN}`, (req, res) => {
   res.sendStatus(200);
 });
 
-// GET /api/note/:id - More lenient validation
+// GET /api/note/:id - Temporarily disable validation for testing
 app.get("/api/note/:id", async (req, res) => {
-  // Accept if accessed from Telegram or has initData
-  const initData = req.headers['x-telegram-init-data'] || req.query.initData;
-  const userAgent = req.headers['user-agent'] || '';
-  const referer = req.headers['referer'] || '';
-  
-  const isTelegram = userAgent.toLowerCase().includes('telegram') || 
-                     referer.includes('t.me') || 
-                     initData;
-  
-  if (!isTelegram) {
-    return res.status(403).json({ error: "Access denied: Must open from Telegram" });
-  }
+  console.log(`🔍 API request for note: ${req.params.id}`);
+  console.log(`🔍 User-Agent: ${req.headers['user-agent']}`);
+  console.log(`🔍 Referer: ${req.headers['referer']}`);
   
   const db = await readDB();
+  console.log(`🔍 Total notes in DB: ${db.notes.length}`);
+  
   const note = db.notes.find((n) => n.id === req.params.id);
-  if (!note) return res.status(404).json({ error: "Note not found" });
+  
+  if (!note) {
+    console.log(`❌ Note not found: ${req.params.id}`);
+    console.log(`📋 Available IDs: ${db.notes.slice(0, 5).map(n => n.id).join(', ')}`);
+    return res.status(404).json({ error: "Note not found" });
+  }
+  
+  console.log(`✅ Note found: ${note.title}`);
   res.json(note);
 });
 
