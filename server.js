@@ -18,7 +18,7 @@ const DB_PATH = path.join(__dirname, "data", "notes.json");
 
 // ─── Redis Setup ──────────────────────────────────────────────────────────────
 let redis = null;
-const USE_REDIS = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN;
+const USE_REDIS = !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
 
 if (USE_REDIS) {
   redis = new Redis({
