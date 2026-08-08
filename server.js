@@ -34,17 +34,23 @@ if (USE_REDIS) {
 // ─── Bot ──────────────────────────────────────────────────────────────────────
 let bot = null;
 if (BOT_TOKEN) {
-  bot = new TelegramBot(BOT_TOKEN, { 
-    polling: true,  // Enable polling to handle commands
-    request: {
-      timeout: 10000, // 10 second timeout
-    }
-  });
+  // Use webhook for production, polling only for local development
+  const useWebhook = process.env.NODE_ENV === 'production' || APP_URL.includes('onrender.com');
+  
+  if (useWebhook) {
+    bot = new TelegramBot(BOT_TOKEN, { polling: false });
+    console.log("✅ Telegram bot initialised (webhook mode)");
+  } else {
+    bot = new TelegramBot(BOT_TOKEN, { polling: true });
+    console.log("✅ Telegram bot initialised (polling mode - local only)");
+  }
   
   // Handle /start command with deep linking
   bot.onText(/\/start (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const param = match[1]; // e.g., "note_abc123"
+    
+    console.log(`🔔 Bot command received: /start ${param} from user ${chatId}`);
     
     if (param.startsWith('note_')) {
       const noteId = param.replace('note_', '');
@@ -62,10 +68,10 @@ if (BOT_TOKEN) {
           ]]
         },
       });
+      
+      console.log(`✅ Sent web_app button to user ${chatId} for note ${noteId}`);
     }
   });
-  
-  console.log("✅ Telegram bot initialised with command handlers");
 } else {
   console.warn("⚠️  BOT_TOKEN not set – Telegram posting disabled");
 }
@@ -156,6 +162,12 @@ app.use(express.static(path.join(__dirname, "public")));
 // Root route - redirect to admin
 app.get("/", (req, res) => {
   res.redirect("/admin.html");
+});
+
+// Telegram webhook endpoint
+app.post(`/webhook/${BOT_TOKEN}`, (req, res) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
 });
 
 // GET /api/note/:id
@@ -384,8 +396,19 @@ app.post("/api/log-access", (req, res) => {
   res.json({ success: true });
 });
 // ─── Start ────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🚀 FreshMinds Academy running at http://localhost:${PORT}`);
   console.log(`   Admin  → http://localhost:${PORT}/admin.html`);
   console.log(`   Viewer → http://localhost:${PORT}/viewer.html?note=<id>`);
+  
+  // Set webhook for production
+  if (bot && (process.env.NODE_ENV === 'production' || APP_URL.includes('onrender.com'))) {
+    const webhookUrl = `${APP_URL}/webhook/${BOT_TOKEN}`;
+    try {
+      await bot.setWebHook(webhookUrl);
+      console.log(`✅ Webhook set: ${webhookUrl}`);
+    } catch (err) {
+      console.error(`❌ Webhook error: ${err.message}`);
+    }
+  }
 });
