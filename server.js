@@ -171,17 +171,20 @@ app.post(`/webhook/${BOT_TOKEN}`, (req, res) => {
   res.sendStatus(200);
 });
 
-// GET /api/note/:id - Validate Telegram initData before serving
+// GET /api/note/:id - More lenient validation
 app.get("/api/note/:id", async (req, res) => {
-  // Validate request is from Telegram WebApp
+  // Accept if accessed from Telegram or has initData
   const initData = req.headers['x-telegram-init-data'] || req.query.initData;
+  const userAgent = req.headers['user-agent'] || '';
+  const referer = req.headers['referer'] || '';
   
-  if (!initData) {
-    return res.status(403).json({ error: "Access denied: Telegram validation required" });
+  const isTelegram = userAgent.toLowerCase().includes('telegram') || 
+                     referer.includes('t.me') || 
+                     initData;
+  
+  if (!isTelegram) {
+    return res.status(403).json({ error: "Access denied: Must open from Telegram" });
   }
-  
-  // TODO: Add proper initData validation using bot token
-  // For now, accept if initData is present
   
   const db = await readDB();
   const note = db.notes.find((n) => n.id === req.params.id);
