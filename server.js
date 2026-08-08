@@ -332,7 +332,7 @@ app.post("/api/note", async (req, res) => {
       // This works if bot is added as channel admin (not anonymous posting)
       const sendPromise = bot.sendMessage(
         CHANNEL_ID, 
-        `📘 *${escapeMarkdown(title)}*\n\n🔐 Premium Content \- Tap to read securely`,
+        `📘 *${escapeMarkdown(title)}*\n\n🔐 Premium Content \\- Tap to read securely`,
         {
           parse_mode: "MarkdownV2",
           reply_markup: {
