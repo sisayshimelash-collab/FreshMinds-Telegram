@@ -194,14 +194,25 @@ app.get("/feed.xml", async (req, res) => {
 
 // GET /note/:id - Single note page for Instant View
 app.get("/note/:id", async (req, res) => {
+  console.log(`🔍 /note/:id called with id: ${req.params.id}`);
+  
   const db = await readDB();
+  console.log(`🔍 Found ${db.notes.length} notes in database`);
+  
   const note = db.notes.find((n) => n.id === req.params.id);
+  console.log(`🔍 Note found: ${!!note}`);
   
   if (!note) {
+    console.log(`❌ Note not found: ${req.params.id}`);
+    console.log(`📋 Available IDs: ${db.notes.slice(0, 5).map(n => n.id).join(', ')}`);
     return res.status(404).send(`
       <!DOCTYPE html>
       <html><head><meta charset="utf-8"><title>Note Not Found</title></head>
-      <body><h1>Note Not Found</h1></body></html>
+      <body>
+        <h1>Note Not Found</h1>
+        <p>Looking for ID: ${req.params.id}</p>
+        <p>Available notes: ${db.notes.length}</p>
+      </body></html>
     `);
   }
   
