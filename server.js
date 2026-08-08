@@ -318,6 +318,7 @@ app.post("/api/note", async (req, res) => {
     const viewerUrl = `${APP_URL}/viewer.html?note=${id}`;
 
     console.log(`🔍 Debug: bot=${!!bot}, CHANNEL_ID=${CHANNEL_ID}, APP_URL=${APP_URL}`);
+    console.log(`🔍 Viewer URL: ${viewerUrl}`);
     
     if (bot && CHANNEL_ID) {
       console.log(`🔄 Attempting to send Telegram message to ${CHANNEL_ID}...`);
@@ -343,7 +344,16 @@ app.post("/api/note", async (req, res) => {
             ]]
           },
         }
-      );
+      ).then(msg => {
+        console.log(`✅ Message sent successfully! Message ID: ${msg.message_id}`);
+        return msg;
+      }).catch(err => {
+        console.error(`❌ Failed to send message: ${err.message}`);
+        if (err.response) {
+          console.error(`❌ Response: ${JSON.stringify(err.response.body)}`);
+        }
+        throw err;
+      });
 
       // Race between send and timeout
       Promise.race([sendPromise, timeoutPromise])
