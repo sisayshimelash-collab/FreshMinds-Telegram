@@ -144,15 +144,24 @@
   
   if (tg) {
     tg.ready();
+    tg.expand(); // Expand to full screen overlay
     tg.setHeaderColor("#000000");
     tg.setBackgroundColor("#000000");
     tg.enableClosingConfirmation && tg.enableClosingConfirmation();
+    
+    // Auto-close when user navigates away
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        setTimeout(() => tg.close(), 100);
+      }
+    });
   }
 
   const user = tg?.initDataUnsafe?.user;
   const studentId = user ? `${user.first_name} ${user.last_name || ''}`.trim() : "Student";
   const userId = user?.id || null;
 
+  // Prevent context menu and selection
   document.addEventListener("contextmenu", e => e.preventDefault());
   document.addEventListener("selectstart", e => e.preventDefault());
 
@@ -175,15 +184,31 @@
 
   async function loadNote() {
     if (!noteId) return showError("No note ID provided in the URL.");
+    
     try {
-      const res = await fetch(`/api/note/${encodeURIComponent(noteId)}`);
-      if (!res.ok) throw new Error(res.status === 404 ? "Note not found." : "Server error.");
+      // Send initData for validation
+      const headers = {};
+      if (tg && tg.initData) {
+        headers['X-Telegram-Init-Data'] = tg.initData;
+      }
+      
+      const res = await fetch(`/api/note/${encodeURIComponent(noteId)}?initData=${encodeURIComponent(tg?.initData || '')}`, {
+        headers
+      });
+      
+      if (!res.ok) {
+        if (res.status === 403) {
+          throw new Error("Please open this note from the Telegram channel");
+        }
+        throw new Error(res.status === 404 ? "Note not found." : "Server error.");
+      }
+      
       const note = await res.json();
 
       document.getElementById("note-title").textContent = note.title;
       document.getElementById("note-content").innerHTML = renderContent(note.content);
       document.getElementById("note-date").textContent = formatDate(note.createdAt);
-      document.getElementById("watermark").textContent = `Viewed by: ${studentId}`;
+      document.getElementById("watermark").textContent = `Viewed by: ${studentId}${userId ? ` (ID: ${userId})` : ''}`;
       
       document.title = note.title;
       hideLoading();
