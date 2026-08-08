@@ -171,24 +171,31 @@ app.post(`/webhook/${BOT_TOKEN}`, (req, res) => {
   res.sendStatus(200);
 });
 
-// GET /api/note/:id - Temporarily disable validation for testing
+// GET /api/note/:id - With working Telegram validation
 app.get("/api/note/:id", async (req, res) => {
-  console.log(`🔍 API request for note: ${req.params.id}`);
-  console.log(`🔍 User-Agent: ${req.headers['user-agent']}`);
-  console.log(`🔍 Referer: ${req.headers['referer']}`);
+  const userAgent = (req.headers['user-agent'] || '').toLowerCase();
+  const referer = (req.headers['referer'] || '').toLowerCase();
+  
+  // Check if it's from Telegram
+  const isTelegramUA = userAgent.includes('telegram');
+  const isTelegramReferer = referer.includes('telegram') || referer.includes('t.me');
+  const isFromOurDomain = referer.includes('freshminds-telegram.onrender.com');
+  
+  // Allow if from Telegram OR from our own domain (for local testing)
+  if (!isTelegramUA && !isTelegramReferer && !isFromOurDomain) {
+    console.log(`❌ Blocked non-Telegram access: UA=${userAgent.substring(0, 50)}, Ref=${referer.substring(0, 50)}`);
+    return res.status(403).json({ error: "This content can only be accessed through Telegram" });
+  }
+  
+  console.log(`✅ Telegram access detected: ${req.params.id}`);
   
   const db = await readDB();
-  console.log(`🔍 Total notes in DB: ${db.notes.length}`);
-  
   const note = db.notes.find((n) => n.id === req.params.id);
   
   if (!note) {
-    console.log(`❌ Note not found: ${req.params.id}`);
-    console.log(`📋 Available IDs: ${db.notes.slice(0, 5).map(n => n.id).join(', ')}`);
     return res.status(404).json({ error: "Note not found" });
   }
   
-  console.log(`✅ Note found: ${note.title}`);
   res.json(note);
 });
 
