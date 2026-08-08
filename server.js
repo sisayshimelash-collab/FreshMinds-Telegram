@@ -127,6 +127,15 @@ app.get("/api/notes", async (req, res) => {
   res.json(db.notes);
 });
 
+// GET /api/health - check if Redis is enabled
+app.get("/api/health", (req, res) => {
+  res.json({
+    redis: USE_REDIS,
+    hasUrl: !!process.env.KV_REST_API_URL,
+    hasToken: !!process.env.KV_REST_API_TOKEN,
+  });
+});
+
 // POST /api/note
 app.post("/api/note", async (req, res) => {
   try {
