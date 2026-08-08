@@ -275,8 +275,8 @@ app.post("/api/note", async (req, res) => {
     await writeDB(db);
     console.log(`💾 Note saved: ${id}`);
 
-    // Send to Telegram with Instant View link
-    const noteUrl = `${APP_URL}/note/${id}`;
+    // Send to Telegram with Web App button (opens in protected modal)
+    const viewerUrl = `${APP_URL}/viewer.html?note=${id}`;
 
     console.log(`🔍 Debug: bot=${!!bot}, CHANNEL_ID=${CHANNEL_ID}, APP_URL=${APP_URL}`);
     
@@ -288,10 +288,17 @@ app.post("/api/note", async (req, res) => {
         setTimeout(() => reject(new Error('Request timeout after 10s')), 10000)
       );
 
-      // Post with Instant View URL (Telegram will auto-generate IV if template exists)
-      const sendPromise = bot.sendMessage(CHANNEL_ID, `📘 *${escapeMarkdown(title)}*\n\n${noteUrl}`, {
+      // Use web_app button to open in Telegram modal (screenshot protected)
+      const sendPromise = bot.sendMessage(CHANNEL_ID, `📘 *${escapeMarkdown(title)}*`, {
         parse_mode: "MarkdownV2",
-        disable_web_page_preview: false, // Enable preview for Instant View
+        reply_markup: {
+          inline_keyboard: [[
+            { 
+              text: "📖 Open Note", 
+              web_app: { url: viewerUrl }
+            }
+          ]]
+        },
       });
 
       // Race between send and timeout
