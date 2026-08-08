@@ -168,6 +168,8 @@ app.post("/api/note", async (req, res) => {
     // Send to Telegram (non-blocking — won't crash the response if it fails)
     const viewerUrl = `${APP_URL}/viewer.html?note=${id}`;
 
+    console.log(`🔍 Debug: bot=${!!bot}, CHANNEL_ID=${CHANNEL_ID}, APP_URL=${APP_URL}`);
+    
     if (bot && CHANNEL_ID) {
       console.log(`🔄 Attempting to send Telegram message to ${CHANNEL_ID}...`);
 
