@@ -33,7 +33,12 @@ if (USE_REDIS) {
 // ─── Bot ──────────────────────────────────────────────────────────────────────
 let bot = null;
 if (BOT_TOKEN) {
-  bot = new TelegramBot(BOT_TOKEN, { polling: false });
+  bot = new TelegramBot(BOT_TOKEN, { 
+    polling: false,
+    request: {
+      timeout: 10000, // 10 second timeout
+    }
+  });
   console.log("✅ Telegram bot initialised");
 } else {
   console.warn("⚠️  BOT_TOKEN not set – Telegram posting disabled");
@@ -166,18 +171,22 @@ app.post("/api/note", async (req, res) => {
     if (bot && CHANNEL_ID) {
       console.log(`🔄 Attempting to send Telegram message to ${CHANNEL_ID}...`);
 
-      bot
-        .sendMessage(CHANNEL_ID, `📘 *${escapeMarkdown(title)}*`, {
-          parse_mode: "MarkdownV2",
-          reply_markup: {
-            inline_keyboard: [[{ text: "📖 Open Note", url: viewerUrl }]],
-          },
-        })
+      // Set a timeout promise
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout after 10s')), 10000)
+      );
 
+      const sendPromise = bot.sendMessage(CHANNEL_ID, `📘 *${escapeMarkdown(title)}*`, {
+        parse_mode: "MarkdownV2",
+        reply_markup: {
+          inline_keyboard: [[{ text: "📖 Open Note", url: viewerUrl }]],
+        },
+      });
+
+      // Race between send and timeout
+      Promise.race([sendPromise, timeoutPromise])
         .then((msg) => {
-          console.log(
-            `✅ Telegram message sent! Message ID: ${msg.message_id}`,
-          );
+          console.log(`✅ Telegram message sent! Message ID: ${msg.message_id}`);
         })
         .catch((err) => {
           console.error(`❌ Telegram error: ${err.message}`);
