@@ -9,6 +9,7 @@ const { Redis } = require("@upstash/redis");
 // ─── Config ───────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 const BOT_TOKEN = process.env.BOT_TOKEN;
+const BOT_USERNAME = process.env.BOT_USERNAME; // e.g., "FreshMindsBot"
 const CHANNEL_ID = process.env.CHANNEL_ID;
 const APP_URL = (process.env.APP_URL || `http://localhost:${PORT}`).replace(
   /\/$/,
@@ -34,12 +35,37 @@ if (USE_REDIS) {
 let bot = null;
 if (BOT_TOKEN) {
   bot = new TelegramBot(BOT_TOKEN, { 
-    polling: false,
+    polling: true,  // Enable polling to handle commands
     request: {
       timeout: 10000, // 10 second timeout
     }
   });
-  console.log("✅ Telegram bot initialised");
+  
+  // Handle /start command with deep linking
+  bot.onText(/\/start (.+)/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    const param = match[1]; // e.g., "note_abc123"
+    
+    if (param.startsWith('note_')) {
+      const noteId = param.replace('note_', '');
+      const viewerUrl = `${APP_URL}/viewer.html?note=${noteId}`;
+      
+      // Send personal message with web_app button (this WILL work!)
+      await bot.sendMessage(chatId, `📘 *Access Your Premium Note*`, {
+        parse_mode: "Markdown",
+        reply_markup: {
+          inline_keyboard: [[
+            { 
+              text: "📖 Open Secure Reader", 
+              web_app: { url: viewerUrl }
+            }
+          ]]
+        },
+      });
+    }
+  });
+  
+  console.log("✅ Telegram bot initialised with command handlers");
 } else {
   console.warn("⚠️  BOT_TOKEN not set – Telegram posting disabled");
 }
@@ -275,7 +301,8 @@ app.post("/api/note", async (req, res) => {
     await writeDB(db);
     console.log(`💾 Note saved: ${id}`);
 
-    // Send to Telegram with Web App button (opens in protected modal)
+    // Send to Telegram - Use URL button since web_app doesn't work in channels
+    // For true protection, we'll implement menu-based access
     const viewerUrl = `${APP_URL}/viewer.html?note=${id}`;
 
     console.log(`🔍 Debug: bot=${!!bot}, CHANNEL_ID=${CHANNEL_ID}, APP_URL=${APP_URL}`);
@@ -288,18 +315,22 @@ app.post("/api/note", async (req, res) => {
         setTimeout(() => reject(new Error('Request timeout after 10s')), 10000)
       );
 
-      // Use web_app button to open in Telegram modal (screenshot protected)
-      const sendPromise = bot.sendMessage(CHANNEL_ID, `📘 *${escapeMarkdown(title)}*`, {
-        parse_mode: "MarkdownV2",
-        reply_markup: {
-          inline_keyboard: [[
-            { 
-              text: "📖 Open Note", 
-              web_app: { url: viewerUrl }
-            }
-          ]]
-        },
-      });
+      // Post announcement with contact bot button
+      const sendPromise = bot.sendMessage(
+        CHANNEL_ID, 
+        `📘 *${escapeMarkdown(title)}*\n\n🔐 *Premium Content Available*\nClick below to access this note securely`,
+        {
+          parse_mode: "MarkdownV2",
+          reply_markup: {
+            inline_keyboard: [[
+              { 
+                text: "📖 Open Secure Reader", 
+                url: `https://t.me/${process.env.BOT_USERNAME || 'YourBotUsername'}?start=note_${id}`
+              }
+            ]]
+          },
+        }
+      );
 
       // Race between send and timeout
       Promise.race([sendPromise, timeoutPromise])
