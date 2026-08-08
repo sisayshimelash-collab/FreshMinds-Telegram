@@ -327,17 +327,18 @@ app.post("/api/note", async (req, res) => {
         setTimeout(() => reject(new Error('Request timeout after 10s')), 10000)
       );
 
-      // Post announcement with contact bot button
+      // Post directly with web_app button
+      // This works if bot is added as channel admin (not anonymous posting)
       const sendPromise = bot.sendMessage(
         CHANNEL_ID, 
-        `📘 *${escapeMarkdown(title)}*\n\n🔐 *Premium Content Available*\nClick below to access this note securely`,
+        `📘 *${escapeMarkdown(title)}*\n\n🔐 Premium Content \- Tap to read securely`,
         {
           parse_mode: "MarkdownV2",
           reply_markup: {
             inline_keyboard: [[
               { 
-                text: "📖 Open Secure Reader", 
-                url: `https://t.me/${process.env.BOT_USERNAME || 'YourBotUsername'}?start=note_${id}`
+                text: "📖 Read Note", 
+                web_app: { url: viewerUrl }
               }
             ]]
           },
