@@ -118,6 +118,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
+// Root route - redirect to admin
+app.get("/", (req, res) => {
+  res.redirect("/admin.html");
+});
+
 // GET /api/note/:id
 app.get("/api/note/:id", async (req, res) => {
   const db = await readDB();
