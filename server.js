@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
 const TelegramBot = require("node-telegram-bot-api");
+const { Redis } = require("@upstash/redis");
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
@@ -15,6 +16,20 @@ const APP_URL = (process.env.APP_URL || `http://localhost:${PORT}`).replace(
 );
 const DB_PATH = path.join(__dirname, "data", "notes.json");
 
+// ─── Redis Setup ──────────────────────────────────────────────────────────────
+let redis = null;
+const USE_REDIS = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN;
+
+if (USE_REDIS) {
+  redis = new Redis({
+    url: process.env.KV_REST_API_URL,
+    token: process.env.KV_REST_API_TOKEN,
+  });
+  console.log("✅ Redis storage enabled");
+} else {
+  console.log("⚠️  Redis not configured - using file storage");
+}
+
 // ─── Bot ──────────────────────────────────────────────────────────────────────
 let bot = null;
 if (BOT_TOKEN) {
@@ -25,16 +40,55 @@ if (BOT_TOKEN) {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function readDB() {
-  try {
-    return JSON.parse(fs.readFileSync(DB_PATH, "utf8"));
-  } catch {
-    return { notes: [] };
+async function readDB() {
+  if (USE_REDIS) {
+    try {
+      const data = await redis.get("notes");
+      return data || { notes: [] };
+    } catch (err) {
+      console.error("Redis read error:", err);
+      return { notes: [] };
+    }
+  } else {
+    try {
+      return JSON.parse(fs.readFileSync(DB_PATH, "utf8"));
+    } catch {
+      return { notes: [] };
+    }
   }
 }
 
-function writeDB(data) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), "utf8");
+async function writeDB(data) {
+  if (USE_REDIS) {
+    try {
+      await redis.set("notes", data);
+    } catch (err) {
+      console.error("Redis write error:", err);
+    }
+  } else {
+    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), "utf8");
+  }
+}
+
+async function logAccess(logEntry) {
+  if (USE_REDIS) {
+    try {
+      // Store access logs in Redis list
+      await redis.lpush("access-log", JSON.stringify(logEntry));
+    } catch (err) {
+      console.error("Redis log error:", err);
+    }
+  } else {
+    const logPath = path.join(__dirname, "data", "access-log.json");
+    let log = [];
+    try {
+      log = JSON.parse(fs.readFileSync(logPath, "utf8"));
+    } catch {
+      log = [];
+    }
+    log.push(logEntry);
+    fs.writeFileSync(logPath, JSON.stringify(log, null, 2), "utf8");
+  }
 }
 
 function generateId(title) {
@@ -60,16 +114,16 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 // GET /api/note/:id
-app.get("/api/note/:id", (req, res) => {
-  const db = readDB();
+app.get("/api/note/:id", async (req, res) => {
+  const db = await readDB();
   const note = db.notes.find((n) => n.id === req.params.id);
   if (!note) return res.status(404).json({ error: "Note not found" });
   res.json(note);
 });
 
 // GET /api/notes
-app.get("/api/notes", (req, res) => {
-  const db = readDB();
+app.get("/api/notes", async (req, res) => {
+  const db = await readDB();
   res.json(db.notes);
 });
 
@@ -92,9 +146,9 @@ app.post("/api/note", async (req, res) => {
       createdAt: new Date().toISOString(),
     };
 
-    const db = readDB();
+    const db = await readDB();
     db.notes.unshift(note);
-    writeDB(db);
+    await writeDB(db);
     console.log(`💾 Note saved: ${id}`);
 
     // Send to Telegram (non-blocking — won't crash the response if it fails)
@@ -135,26 +189,10 @@ app.post("/api/note", async (req, res) => {
 
 
 // POST /api/log-access - log student access
-app.post("/api/log-access", (req, res) => {
+app.post("/api/log-access", async (req, res) => {
   const { noteId, studentName, userId, accessedAt } = req.body;
   
-  const logPath = path.join(__dirname, "data", "access-log.json");
-  
-  let log = [];
-  try {
-    log = JSON.parse(fs.readFileSync(logPath, "utf8"));
-  } catch {
-    log = [];
-  }
-  
-  log.push({
-    noteId,
-    studentName,
-    userId,
-    accessedAt
-  });
-  
-  fs.writeFileSync(logPath, JSON.stringify(log, null, 2), "utf8");
+  await logAccess({ noteId, studentName, userId, accessedAt });
   console.log(`📊 Access logged: ${studentName} viewed ${noteId}`);
   
   res.json({ success: true });
