@@ -338,17 +338,7 @@
 
       if (!res.ok) throw new Error(data.error || "Server error");
 
-      const noteUrl = `${window.location.origin}/viewer.html?note=${data.note.id}`;
-      
       showToast("success", `Note posted! ID: ${data.note.id}`);
-      
-      // Copy link to clipboard
-      navigator.clipboard.writeText(noteUrl).then(() => {
-        setTimeout(() => {
-          showToast("success", `📋 Link copied! Share in Telegram: ${noteUrl}`);
-        }, 1500);
-      });
-      
       titleEl.value   = "";
       contentEl.value = "";
       charCount.textContent = "0 / 30000";
